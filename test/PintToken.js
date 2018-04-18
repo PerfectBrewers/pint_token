@@ -1,4 +1,5 @@
 var PintToken = artifacts.require("./PintToken.sol");
+const assertJump = require('./helpers/assertJump');
 
 contract('PintToken', function(accounts) {
   var tokenInstance;
@@ -30,13 +31,16 @@ contract('PintToken', function(accounts) {
     });
   });
 
+  it('tests require statement by transferring something larger than the sender balance', function() {
+    return PintToken.deployed().then(function(instance) {
+      tokenInstance = instance;
+      return tokenInstance.transfer.call(accounts[1], 99999999999999999999999);
+    }).then(() => assert.fail('should not be allowed')).catch(assertJump);
+  });
+
   it('transfers token ownership', function() {
     return PintToken.deployed().then(function(instance) {
       tokenInstance = instance;
-      // Test `require` statement first by transferring something larger than the sender's balance
-      return tokenInstance.transfer.call(accounts[1], 99999999999999999999999);
-    }).then(assert.fail).catch(function(error) {
-      assert(error.message.indexOf('revert') >= 0, 'error message must contain revert');
       return tokenInstance.transfer.call(accounts[1], 250000, { from: accounts[0] });
     }).then(function(success) {
       assert.equal(success, true, 'it returns true');
@@ -74,4 +78,18 @@ contract('PintToken', function(accounts) {
       assert.equal(allowance.toNumber(), 100, 'stores the allowance for delegated transfer');
     });
   });
+  it('handles delegated transfer', function() {
+    return PintToken.deployed().then(function(instance) {
+      tokenInstance = instance;
+      fromAccount = accounts[2];
+      toAccount = accounts[3];
+      spendingAccount = accounts[4];
+      return tokenInstance.transfer(fromAccount, 100, {from: accounts[0] });
+    }).then(function(receipt) {
+      return tokenInstance.approve(spendingAccount, 10, {from: fromAccount} );
+    }).then(function(receipt) {
+      return tokenInstance.transferFrom(fromAccount, toAccount, 20, {from: spendingAccount });
+    }).then(() => assert.fail('cannot transfer value larger than balance')).catch(assertJump);
+  });
+
 });
