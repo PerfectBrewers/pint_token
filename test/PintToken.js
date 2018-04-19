@@ -78,6 +78,7 @@ contract('PintToken', function(accounts) {
       assert.equal(allowance.toNumber(), 100, 'stores the allowance for delegated transfer');
     });
   });
+
   it('handles delegated transfer', function() {
     return PintToken.deployed().then(function(instance) {
       tokenInstance = instance;
